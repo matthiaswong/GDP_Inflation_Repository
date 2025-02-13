@@ -1,0 +1,141 @@
+---
+title: "Study_of_Singapore_Inflation_and_GDP"
+output: html_document
+date: "2025-02-11"
+author: Matthias Wong Yao Wei 
+---
+
+# Case Study Overview
+
+In this case study, I will observe the relationship between Singapore's inflation rate and the GDP of the average Singaporean worker. Based on the relationship and trends between the two, I will observe whether it is aligned with theoretical economic theory and if so/ if not, what is to be done by the Singaporean government.
+
+# Economic Theory Introduction
+
+![](AS_+_AD_graph.svg.png){width="484"}
+
+This is a theoretical macroeconomic model plotting GDP (Real Output) against Price Level. Based on the model, it is expected that a rise in GDP leads to a rise in inflation (for the most part). The point of the case study is to determine **at which point is the Singaporean economy on the model** using inflation data and income data from the past 10 years.
+
+There are several possibilities that the data will say:
+
+1.  Real Output Rise is faster than the General Price Level Rise
+    -   Then the Singaporean Economy is along the portion of the AS curve where it is generally flat
+2.  Real Output Rise is proportionate to the General Price Level Rise
+    -   Then the Singaporean Economy is along the portion of the AS curve where it is generally uni-linear
+3.  Real Output Rise is somewhat stagnant while the General Price Level is still rising
+    -   Perhaps the worst-case scenario, this is where the equilibrium point is along the perfectly vertical portion of the AS curve
+
+# Data Analysis
+
+Step 1: Read GDP dataset and clean it accordingly
+
+```{r}
+## Load Libraries 
+library(tidyverse)
+
+## Reading the GDP csv file and cleaning it 
+df2 <- read_delim("~/Downloads/singapore-gdp-gross-domestic-product.csv",",") ## to change according to file path
+df2 <- df2 |>
+  slice(-c(1:6))
+df2 <- df2 |>
+  separate(col = 1, into = paste0("V", 1:4), sep = ",")
+colnames(df2) <- c("Date","GDP(Billions of US Dollars)","Per Capita(US$)","Annual Change")
+
+# filter out only the necessary years (2010-2023)
+GDP_df <- df2 |> 
+  slice(c(51:64)) |> 
+  mutate(Date = year(Date))
+
+View(GDP_df)
+```
+
+Step 2: Read Inflation Dataset and clean it accordingly
+
+```{r}
+
+df <- read_csv("~/Downloads/singapore-inflation-rate-cpi.csv") |>
+  slice(-c(1:5)) |> 
+  separate(col = 1, into = paste0("V", 1:3), sep = ",")
+colnames(df) <- c("Date","Inflation Rate(%)","Annual Change")
+Inflation_df <- df |> 
+  slice(c(51:64)) |> 
+  mutate(Date = year(Date))
+
+View(Inflation_df)
+
+```
+
+Step 3: Inner Join the two tables
+
+```{r}
+Combined_DF <- inner_join(GDP_df,Inflation_df, by = "Date", copy = false) |> 
+  select(-c(3:4)) |> 
+  select(c(-4))
+
+View(Combined_DF)
+```
+
+Step 4: Visualise the GDP and inflation in a time-series plot
+
+```{r}
+library(plotly)
+Combined_DF$`Inflation Rate(%)` <- as.numeric(Combined_DF$`Inflation Rate(%)`)
+Inflation_Plot <- Combined_DF |>
+  ggplot(aes(x = Date, y = `Inflation Rate(%)`)) + geom_point(size = 2, colour = "deepskyblue4") + geom_line(colour = "deepskyblue4")
+ggplotly(Inflation_Plot)
+```
+
+It is noted that the inflation rate is not time-based (a.k.a doesn't have a particular linear relationship with time) but most likely due to other macroeconomics factors.
+
+It is also noted that Inflation rate / economic outlook looks particular negative in recent years, with both higher-than-wanted inflation rates in 2022, and a deflation rate in 2020.
+
+```{r}
+Combined_DF$`GDP(Billions of US Dollars)` <- as.numeric(Combined_DF$`GDP(Billions of US Dollars)`)
+GDP_Plot <- Combined_DF |> 
+  ggplot(aes(x= Date, y = `GDP(Billions of US Dollars)`)) + geom_point(size = 2, colour = "red" ) + geom_line(colour = "red") + geom_smooth(method = "lm")
+
+ggplotly(GDP_Plot)
+
+```
+
+Based on the linear regression model, GDP( billion of US dollars) is linearly increasing year after year. This is naturally expected as Economic Output should increase year after year given inflation (GDP = Total Value of G/S produced in a given year, regardless of counting by the expenditure/income/value-added method, increase in price would mean increase in nominal GDP year after year)
+
+Step 5: Plot the GDP (dependent Variable) against the Inflation Rate
+
+```{r}
+gdp_against_inflation <- Combined_DF |> 
+  ggplot(aes(x = `GDP(Billions of US Dollars)`, y = `Inflation Rate(%)`)) + geom_point( size = 3) + geom_line() + geom_smooth(method = "loess")
+ggplotly(gdp_against_inflation)
+```
+
+This graph may look not similar to the ADAS framework mentioned earlier, but I believe that the data do reflect some sense of the theoratical economic ADAS framework.
+
+If we start looking from year 2015, perhaps the trend would look more similar.
+
+```{r}
+Combined_DF_2015_Onwards <- Combined_DF |> 
+  slice(c(6:14))
+
+gdp_against_inflation_2015_onwards <- Combined_DF_2015_Onwards |> 
+  ggplot(aes(x = `GDP(Billions of US Dollars)`, y = `Inflation Rate(%)`)) + geom_point( size = 3) + geom_line() + geom_smooth(method = "lm")
+ggplotly(gdp_against_inflation_2015_onwards)
+```
+
+From, the year 2015 onwards, there is almost a linear regression model between the GDP(Billions of US Dollars) and the Inflation Rate.
+
+The linear regression model looks similar to:
+
+**Inflation Rate = b1**\^ **+ bg\^GDP** where B1 is the intercept, Bg the coefficient of the GDP.
+
+# Conclusion 
+
+As of data from 2015 to the year 2023, it seems most likely then real output (GDP) rise is proportionate to the rise in Inflation, reflecting the Singaporean economy right now. However, there may be problems with this:
+
+The need to increase long-run potential aggregate supply. Assuming that the equilibrium moves along the AS curve as GDP increases, it will soon reach the point where GDP is stagnant whilst also having inflation. Then, the need to increase the long-run potential supply is increasingly important.
+
+Several solutions have been implemented by the government, such as:
+
+-   Priority Build-to-Order flats to married couples who are expecting or will expect children
+
+-   Increased baby bonuses
+
+Despite the solutions, Singapore still faces the problem of an aging population and a slowing birth rate. **Then, with due time, perhaps the Singaporean government has to pursue a more aggressive way of increasing long-run aggregate supply, such as foreign talent, if it were to avoid the situation of having a stagnant economy with increasing inflation rate.**
